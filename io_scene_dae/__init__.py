@@ -73,7 +73,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     use_mesh_modifiers : BoolProperty(
         name="Apply Modifiers",
         description="Apply modifiers to mesh objects (on a copy!).",
-        default=False,
+        default=True,
         )
     use_exclude_armature_modifier : BoolProperty(
         name="Exclude Armature Modifier",
@@ -90,7 +90,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     use_triangles : BoolProperty(
         name="Triangulate",
         description="Export Triangles instead of Polygons.",
-        default=False,
+        default=True,
         )
 
     use_copy_images : BoolProperty(
@@ -112,13 +112,13 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     use_anim : BoolProperty(
         name="Export Animation",
         description="Export keyframe animation",
-        default=False,
+        default=True,
         )
     use_anim_action_all : BoolProperty(
         name="All Actions",
         description=("Export all actions for the first armature found "
                      "in separate DAE files"),
-        default=False,
+        default=True,
         )
     use_anim_skip_noexp : BoolProperty(
         name="Skip (-noexp) Actions",
