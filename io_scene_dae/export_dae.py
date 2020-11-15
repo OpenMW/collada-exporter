@@ -1938,7 +1938,7 @@ class DaeExporter:
                 start = x.frame_range[0] * framelen
                 end = x.frame_range[1] * framelen
                 self.writel(
-                    S_ANIM_CLIPS, 1, "<animation_clip name=\"{}\" "
+                    S_ANIM_CLIPS, 1, "<animation_clip id=\"{}\" "
                     "start=\"{}\" end=\"{}\">".format(x.name, start, end))
                 for z in tcn:
                     self.writel(S_ANIM_CLIPS, 2,
