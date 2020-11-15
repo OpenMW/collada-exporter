@@ -384,13 +384,10 @@ class DaeExporter:
             numarr_alpha((0.5,0.5,0.5))))# material.mirror_color is removed too
         self.writel(S_FX, 5, "</reflective>")
 
-        """
-        #material.use_transparency is removed too
-        if (material.use_transparency):
+        if material.blend_method == "BLEND":
             self.writel(S_FX, 5, "<transparency>")
-            self.writel(S_FX, 6, "<float>{}</float>".format(material.alpha))
+            self.writel(S_FX, 6, "<float>{}</float>".format(material.alpha_threshold))
             self.writel(S_FX, 5, "</transparency>")
-        """
 
         self.writel(S_FX, 5, "<index_of_refraction>")
         self.writel(S_FX, 6, "<float>{}</float>".format(1.2))#material.specular_ior is removed too
