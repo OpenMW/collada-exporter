@@ -1556,7 +1556,7 @@ class DaeExporter:
         for k in keys:
             source_frames += " {}".format(k[0])
             if (matrices):
-                source_transforms += " {}".format(strmtx(k[1]))
+                source_transforms += " {}".format(strmtx((k[1] * FILESCALE).normalized() - UTILMATRIX))
             else:
                 source_transforms += " {}".format(k[1])
 
