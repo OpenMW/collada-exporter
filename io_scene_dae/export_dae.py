@@ -1020,7 +1020,7 @@ class DaeExporter:
                 contid))
             pose_values = ""
             for v in si["bone_bind_poses"]:
-                pose_values += " {}".format(strmtx(v))
+                pose_values += " {}".format(strmtx((v * FILESCALE).normalized() - UTILMATRIX))
 
             self.writel(
                 S_SKIN, 4, "<float_array id=\"{}-bind_poses-array\" "
