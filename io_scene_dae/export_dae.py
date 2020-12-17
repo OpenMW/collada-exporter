@@ -793,7 +793,7 @@ class DaeExporter:
         float_values = ""
         for v in vertices:
             float_values += " {} {} {}".format(
-                v.normal.x * FILESCALE, v.normal.y * FILESCALE, v.normal.z FILESCALE)
+                v.normal.x * FILESCALE, v.normal.y * FILESCALE, v.normal.z * FILESCALE)
         self.writel(
             S_GEOM, 4, "<float_array id=\"{}-normals-array\" "
             "count=\"{}\">{}</float_array>".format(
