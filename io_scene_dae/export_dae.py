@@ -50,6 +50,9 @@ S_ANIM = 12
 
 CMP_EPSILON = 0.0001
 
+FILESCALE = 70
+UTILMATRIX = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,FILESCALE-1]])
+
 
 def snap_tup(tup):
     ret = ()
@@ -1223,7 +1226,7 @@ class DaeExporter:
         if (is_ctrl_bone is False):
             self.writel(
                 S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                    strmtx(xform)))
+                    strmtx((xform * FILESCALE).normalized() - UTILMATRIX )))
 
         for c in bone.children:
             self.export_armature_bone(c, il, si)
