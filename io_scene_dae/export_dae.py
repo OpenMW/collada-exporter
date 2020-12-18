@@ -1557,7 +1557,7 @@ class DaeExporter:
 
         self.writel(
             S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                strmtx(node.matrix_local)))
+                strmtx((node.matrix_local * FILESCALE).normalized() - UTILMATRIX)))
         if (node.type == "MESH"):
             self.export_mesh_node(node, il)
         elif (node.type == "CURVE"):
