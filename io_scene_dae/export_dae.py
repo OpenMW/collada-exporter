@@ -775,7 +775,7 @@ class DaeExporter:
         float_values = ""
         for v in vertices:
             float_values += " {} {} {}".format(
-                v.vertex.x, v.vertex.y, v.vertex.z)
+                v.vertex.x * FILESCALE, v.vertex.y * FILESCALE, v.vertex.z * FILESCALE)
         self.writel(
             S_GEOM, 4, "<float_array id=\"{}-positions-array\" "
             "count=\"{}\">{}</float_array>".format(
@@ -796,7 +796,7 @@ class DaeExporter:
         float_values = ""
         for v in vertices:
             float_values += " {} {} {}".format(
-                v.normal.x * FILESCALE, v.normal.y * FILESCALE, v.normal.z * FILESCALE)
+                v.normal.x, v.normal.y, v.normal.z)
         self.writel(
             S_GEOM, 4, "<float_array id=\"{}-normals-array\" "
             "count=\"{}\">{}</float_array>".format(
