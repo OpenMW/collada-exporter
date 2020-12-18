@@ -50,9 +50,6 @@ S_ANIM = 12
 
 CMP_EPSILON = 0.0001
 
-FILESCALE = 70
-UTILMATRIX = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,FILESCALE-1]])
-
 
 def snap_tup(tup):
     ret = ()
@@ -773,9 +770,10 @@ class DaeExporter:
         # Vertex Array
         self.writel(S_GEOM, 3, "<source id=\"{}-positions\">".format(meshid))
         float_values = ""
+        scale_factor = self.config["scale_factor"]
         for v in vertices:
             float_values += " {} {} {}".format(
-                v.vertex.x * FILESCALE, v.vertex.y * FILESCALE, v.vertex.z * FILESCALE)
+                v.vertex.x * scale_factor, v.vertex.y * scale_factor, v.vertex.z * scale_factor)
         self.writel(
             S_GEOM, 4, "<float_array id=\"{}-positions-array\" "
             "count=\"{}\">{}</float_array>".format(
@@ -1022,8 +1020,10 @@ class DaeExporter:
             self.writel(S_SKIN, 3, "<source id=\"{}-bind_poses\">".format(
                 contid))
             pose_values = ""
+            scale_factor = self.config["scale_factor"]
+            util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
             for v in si["bone_bind_poses"]:
-                pose_values += " {}".format(strmtx((v * FILESCALE).normalized() - UTILMATRIX))
+                pose_values += " {}".format(strmtx((v * scale_factor).normalized() - util_matrix))
 
             self.writel(
                 S_SKIN, 4, "<float_array id=\"{}-bind_poses-array\" "
@@ -1222,11 +1222,13 @@ class DaeExporter:
             xform = bone.parent.matrix_local.inverted_safe() @ xform
         else:
             si["skeleton_nodes"].append(boneid)
-
+        
+        scale_factor = self.config["scale_factor"]
+        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
         if (is_ctrl_bone is False):
             self.writel(
                 S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                    strmtx((xform * FILESCALE).normalized() - UTILMATRIX )))
+                    strmtx((xform * scale_factor).normalized() - util_matrix)))
 
         for c in bone.children:
             self.export_armature_bone(c, il, si)
@@ -1554,10 +1556,12 @@ class DaeExporter:
             S_NODES, il, "<node id=\"{}\" name=\"{}\" type=\"NODE\">".format(
                 self.validate_id(node.name), node.name))
         il += 1
-
+        
+        scale_factor = self.config["scale_factor"]
+        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
         self.writel(
             S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                strmtx((node.matrix_local * FILESCALE).normalized() - UTILMATRIX)))
+                strmtx((node.matrix_local * scale_factor).normalized() - util_matrix)))
         if (node.type == "MESH"):
             self.export_mesh_node(node, il)
         elif (node.type == "CURVE"):
@@ -1651,11 +1655,13 @@ class DaeExporter:
         source_frames = ""
         source_transforms = ""
         source_interps = ""
-
+        
+        scale_factor = self.config["scale_factor"]
+        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
         for k in keys:
             source_frames += " {}".format(k[0])
             if (matrices):
-                source_transforms += " {}".format(strmtx((k[1] * FILESCALE).normalized() - UTILMATRIX))
+                source_transforms += " {}".format(strmtx((k[1] * scale_factor).normalized() - util_matrix))
             else:
                 source_transforms += " {}".format(k[1])
 
