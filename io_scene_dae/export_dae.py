@@ -1191,6 +1191,8 @@ class DaeExporter:
 
         if (is_ctrl_bone is False):
             boneid = self.new_id("bone")
+            bonenamehacked = bone.name.replace(" ", "_").lower()
+            boneid = bonenamehacked
             boneidx = si["bone_count"]
             si["bone_count"] += 1
             bonesid = "{}-{}".format(si["id"], boneidx)
