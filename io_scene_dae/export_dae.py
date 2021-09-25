@@ -1384,12 +1384,12 @@ class DaeExporter:
     def export_description(self, node, il, alphamaterial, alphavalue):
         self.writel(S_NODES, 3, "<extra type=\"Node\">")
         self.writel(S_NODES, 4, "<technique profile=\"OpenSceneGraph\">")
-        self.writel(S_NODES, 5, "<descriptions>")
+        self.writel(S_NODES, 5, "<Descriptions>")
         self.writel(
             S_NODES, 5,
-            "<description>alphatest GEQUAL {} {}</description>".format(
+            "<Description>alphatest GEQUAL {} {}</Description>".format(
                 alphavalue, alphamaterial))
-        self.writel(S_NODES, 5, "</descriptions>")
+        self.writel(S_NODES, 5, "</Descriptions>")
         self.writel(S_NODES, 4, "</technique>")
         self.writel(S_NODES, 3, "</extra>")
 
