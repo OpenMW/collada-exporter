@@ -55,7 +55,6 @@ def snap_tup(tup):
     ret = ()
     for x in tup:
         ret += (x - math.fmod(x, 0.0001), )
-
     return tup
 
 
@@ -1973,7 +1972,34 @@ class DaeExporter:
         else:
             self.export_animation(self.scene.frame_start, self.scene.frame_end)
 
-        self.writel(S_ANIM, 0, "</library_animations>")
+        self.writel(S_ANIM, 0, "</library_animations>")    
+    
+    def export_textkeys(self, filepath):
+        """
+        Writes a .txt file containing textkeys,
+        which are animation definitions
+        needed by the OpenMW game engine.
+        """
+        context = bpy.context
+        scene = context.scene    
+        textkeys_output = open(filepath[:-3] + "txt", "w")
+        
+        if not scene.timeline_markers:
+            textkeys_output.write("No timeline markers, needed to create textkeys, found in .blend file!")        
+            textkeys_output.close()  
+        
+        def sort_by_frame(item):
+            return item.frame    
+        
+        markers = []
+        for m in scene.timeline_markers:
+            markers.append(m)        
+        markers.sort(key=sort_by_frame)
+        
+        for m in markers:
+            tkf = round(m.frame * 1/scene.render.fps, 6)
+            textkeys_output.write(m.name + " " + str(tkf) + '\n' )        
+        textkeys_output.close()  
 
     def export(self):
         self.writel(S_GEOM, 0, "<library_geometries>")
@@ -2011,6 +2037,9 @@ class DaeExporter:
 
         if (self.config["use_anim"]):
             self.export_animations()
+        
+        if (self.config["use_textkeys"]):
+            self.export_textkeys(self.path)
 
         try:
             f = open(self.path, "wb")
