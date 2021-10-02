@@ -50,7 +50,6 @@ S_ANIM = 12
 
 CMP_EPSILON = 0.0001
 
-
 def snap_tup(tup):
     ret = ()
     for x in tup:
@@ -388,27 +387,31 @@ class DaeExporter:
             self.writel(S_FX, 6, "<float>{}</float>".format(material.alpha_threshold))
             self.writel(S_FX, 5, "</transparency>")
 
+        if material.blend_method == "CLIP":
+            self.alphatesting_materialdata = self.alphatesting_materialdata + " " + material.name + " " + str(material.alpha_threshold)
+
         self.writel(S_FX, 5, "<index_of_refraction>")
         self.writel(S_FX, 6, "<float>{}</float>".format(1.2))#material.specular_ior is removed too
         self.writel(S_FX, 5, "</index_of_refraction>")
 
         self.writel(S_FX, 4, "</{}>".format(shtype))
 
-        self.writel(S_FX, 4, "<extra>")
-        self.writel(S_FX, 5, "<technique profile=\"FCOLLADA\">")
+        self.writel(S_FX, 3, "</technique>")
+        self.writel(S_FX, 3, "<extra>")
+        self.writel(S_FX, 4, "<technique profile=\"FCOLLADA\">")
         if (normal_tex):
-            self.writel(S_FX, 6, "<bump bumptype=\"NORMALMAP\">")
+            self.writel(S_FX, 5, "<bump bumptype=\"NORMALMAP\">")
             self.writel(
-                S_FX, 7,
+                S_FX, 6,
                 "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>".format(
                     normal_tex))
-            self.writel(S_FX, 6, "</bump>")
+            self.writel(S_FX, 5, "</bump>")
 
-        self.writel(S_FX, 5, "</technique>")
-        self.writel(S_FX, 5, "<technique profile=\"GOOGLEEARTH\">")
-        self.writel(S_FX, 6, "<double_sided>{}</double_sided>".format(
+        self.writel(S_FX, 4, "</technique>")
+        self.writel(S_FX, 4, "<technique profile=\"GOOGLEEARTH\">")
+        self.writel(S_FX, 5, "<double_sided>{}</double_sided>".format(
             int(double_sided_hint)))
-        self.writel(S_FX, 5, "</technique>")
+        self.writel(S_FX, 4, "</technique>")
 
         """
         if (material.use_shadeless):#material.use_shadeless is removed too
@@ -416,9 +419,7 @@ class DaeExporter:
             self.writel(S_FX, 6, "<unshaded>1</unshaded>")
             self.writel(S_FX, 5, "</technique>")
         """
-        self.writel(S_FX, 4, "</extra>")
-
-        self.writel(S_FX, 3, "</technique>")
+        self.writel(S_FX, 3, "</extra>")
         self.writel(S_FX, 2, "</profile_COMMON>")
         self.writel(S_FX, 1, "</effect>")
 
@@ -1179,6 +1180,15 @@ class DaeExporter:
         else:
             self.writel(S_NODES, il, "</instance_geometry>")
 
+            # OpenMW-specific alpha testing
+            testing_data = self.alphatesting_materialdata.split()
+            if (self.alphatestingdata_done is False and len(testing_data) > 0):
+                for i in range(0, len(testing_data), 2):
+                    alphamaterial = testing_data[i]
+                    alphavalue = testing_data[i + 1]
+                    self.export_description(node, il, alphamaterial, alphavalue)
+                    self.alphatestingdata_done = True
+
     def export_armature_bone(self, bone, il, si):
         is_ctrl_bone = (
             self.config["use_exclude_ctrl_bones"] and
@@ -1223,7 +1233,7 @@ class DaeExporter:
             xform = bone.parent.matrix_local.inverted_safe() @ xform
         else:
             si["skeleton_nodes"].append(boneid)
-        
+
         scale_factor = self.config["scale_factor"]
         util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
         if (is_ctrl_bone is False):
@@ -1369,6 +1379,18 @@ class DaeExporter:
                 node.empty_display_type))
         self.writel(S_NODES, 5, "</technique>")
         self.writel(S_NODES, 4, "</extra>")
+
+    def export_description(self, node, il, alphamaterial, alphavalue):
+        self.writel(S_NODES, 3, "<extra type=\"Node\">")
+        self.writel(S_NODES, 4, "<technique profile=\"OpenSceneGraph\">")
+        self.writel(S_NODES, 5, "<Descriptions>")
+        self.writel(
+            S_NODES, 5,
+            "<Description>alphatest GEQUAL {} {}</Description>".format(
+                alphavalue, alphamaterial))
+        self.writel(S_NODES, 5, "</Descriptions>")
+        self.writel(S_NODES, 4, "</technique>")
+        self.writel(S_NODES, 3, "</extra>")
 
     def export_curve(self, curve):
         splineid = self.new_id("spline")
@@ -1557,7 +1579,7 @@ class DaeExporter:
             S_NODES, il, "<node id=\"{}\" name=\"{}\" type=\"NODE\">".format(
                 self.validate_id(node.name), node.name))
         il += 1
-        
+
         scale_factor = self.config["scale_factor"]
         util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
         self.writel(
@@ -1656,7 +1678,7 @@ class DaeExporter:
         source_frames = ""
         source_transforms = ""
         source_interps = ""
-        
+
         scale_factor = self.config["scale_factor"]
         util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
         for k in keys:
@@ -2071,7 +2093,8 @@ class DaeExporter:
                  "path", "mesh_cache", "curve_cache", "material_cache",
                  "image_cache", "skeleton_info", "config", "valid_nodes",
                  "armature_for_morph", "used_bones", "wrongvtx_report",
-                 "skeletons", "action_constraints", "temp_meshes")
+                 "skeletons", "action_constraints", "temp_meshes",
+                 "alphatesting_materialdata", "alphatestingdata_done")
 
     def __init__(self, path, kwargs, operator):
         self.operator = operator
@@ -2093,6 +2116,8 @@ class DaeExporter:
         self.wrongvtx_report = False
         self.skeletons = []
         self.action_constraints = []
+        self.alphatesting_materialdata = ""
+        self.alphatestingdata_done = False
 
     def __enter__(self):
         return self
