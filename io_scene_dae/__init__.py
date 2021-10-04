@@ -180,7 +180,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     @property
     def check_extension(self):
         return True
-
+    
     def execute(self, context):
         if not self.filepath:
             raise Exception("filepath not set")
@@ -195,29 +195,184 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
 
         from . import export_dae
         return export_dae.save(self, context, **keywords)
-
+    
+    def draw(self, context):
+        pass
 
 def menu_func(self, context):
     self.layout.operator(CE_OT_export_dae.bl_idname, text="Better Collada (.dae)")
 
-	
-#classes = (CE_OT_export_dae)
+class DAE_PT_export_include(bpy.types.Panel):
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_label = "Include"
+    bl_parent_id = "FILE_PT_operator"
+    
+    @classmethod
+    def poll(cls, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+            
+        return operator.bl_idname == "EXPORT_SCENE_OT_dae"
 
-def register():	 
-	from bpy.utils import register_class
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        
+        sfile = context.space_data
+        operator = sfile.active_operator
+        
+        col = layout.column(heading = "Limit to", align = True)
+        col.prop(operator, 'use_export_selected')
+        col.prop(operator, 'use_active_layers')
+        
+        layout.column().prop(operator, 'object_types')
+        
+        col = layout.column(heading = "Extras", align = True)
+        col.prop(operator, 'use_copy_images')
+        col.prop(operator, 'use_textkeys')        
 
-	register_class(CE_OT_export_dae)
-	
-	#bpy.types.INFO_MT_file_export.append(menu_func)
-	bpy.types.TOPBAR_MT_file_export.append(menu_func)
+class DAE_PT_export_transform(bpy.types.Panel):
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_label = "Transform"
+    bl_parent_id = "FILE_PT_operator"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(cls, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+            
+        return operator.bl_idname == "EXPORT_SCENE_OT_dae"
 
-def unregister():	 
-	from bpy.utils import unregister_class
-	
-	unregister_class(CE_OT_export_dae)
-	
-	#bpy.types.INFO_MT_file_export.append(menu_func)
-	bpy.types.TOPBAR_MT_file_export.remove(menu_func)
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        
+        sfile = context.space_data
+        operator = sfile.active_operator
+        
+        col = layout.column(heading = "Scale", align = True)
+        col.prop(operator, 'scale_factor')
+
+class DAE_PT_export_geometry(bpy.types.Panel):
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_label = "Geometry"
+    bl_parent_id = "FILE_PT_operator"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(cls, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+            
+        return operator.bl_idname == "EXPORT_SCENE_OT_dae"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        
+        sfile = context.space_data
+        operator = sfile.active_operator
+        
+        col = layout.column(align = True)
+        col.prop(operator, 'use_mesh_modifiers')
+        col.prop(operator, 'use_exclude_armature_modifier')
+        col.prop(operator, 'use_tangent_arrays')
+        col.prop(operator, 'use_triangles')
+        col.prop(operator, 'use_shape_key_export')
+
+
+class DAE_PT_export_armature(bpy.types.Panel):
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_label = "Armature"
+    bl_parent_id = "FILE_PT_operator"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(cls, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+            
+        return operator.bl_idname == "EXPORT_SCENE_OT_dae"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        
+        sfile = context.space_data
+        operator = sfile.active_operator
+        
+        col = layout.column(align = True)
+        col.prop(operator, 'use_exclude_ctrl_bones')
+        
+class DAE_PT_export_animation(bpy.types.Panel):
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_label = "Animation"
+    bl_parent_id = "FILE_PT_operator"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(cls, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+            
+        return operator.bl_idname == "EXPORT_SCENE_OT_dae"
+
+    def draw_header(self, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+
+        self.layout.prop(operator, "use_anim", text="")
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        
+        sfile = context.space_data
+        operator = sfile.active_operator
+        
+        layout.enabled = operator.use_anim     
+        col = layout.column(align = True)
+        col.prop(operator, 'use_anim_action_all')
+        col.prop(operator, 'use_anim_skip_noexp')
+        col.prop(operator, 'use_anim_optimize')
+        col.prop(operator, 'anim_optimize_precision')
+    
+    
+classes = (
+    CE_OT_export_dae,
+    DAE_PT_export_include,
+    DAE_PT_export_transform,
+    DAE_PT_export_geometry,
+    DAE_PT_export_armature,
+    DAE_PT_export_animation
+)
+
+def register():  
+    from bpy.utils import register_class
+
+    for c in classes:
+        bpy.utils.register_class(c)
+
+    bpy.types.TOPBAR_MT_file_export.append(menu_func)
+
+def unregister():    
+    from bpy.utils import unregister_class
+    
+    for c in classes:
+        bpy.utils.unregister_class(c)
+
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func)
 
 if __name__ == "__main__":
     register()
