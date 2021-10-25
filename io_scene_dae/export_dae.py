@@ -846,9 +846,9 @@ class DaeExporter:
             float_values = ""
             for v in vertices:
                 float_values += " {} {} {}".format(
-                    round(v.bitangent.x, 6),
-                    round(v.bitangent.y, 6),
-                    round(v.bitangent.z, 6))
+                    round(v.bitangent.x, lim),
+                    round(v.bitangent.y, lim),
+                    round(v.bitangent.z, lim))
             self.writel(
                 S_GEOM, 4, "<float_array id=\"{}-bitangents-array\" "
                 "count=\"{}\">{}</float_array>".format(
