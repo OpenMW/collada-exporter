@@ -57,11 +57,13 @@ def snap_tup(tup):
     return tup
 
 
-def strmtx(mtx):
+def strmtx(mtx, scale=1.0, limit=16):    
+    mtx_util = Matrix([[0,0,0,0], [0,0,0,0],[0,0,0,0],[0,0,0,scale-1]])
+    mtx = (mtx * scale).normalized() - mtx_util    
     s = ""
     for x in range(4):
         for y in range(4):
-            s += "{} ".format(mtx[x][y])
+            s += "{} ".format(round((mtx[x][y]), limit))
     s = " {} ".format(s)
     return s
 
@@ -770,10 +772,13 @@ class DaeExporter:
         # Vertex Array
         self.writel(S_GEOM, 3, "<source id=\"{}-positions\">".format(meshid))
         float_values = ""
-        scale_factor = self.config["scale_factor"]
+        sf = self.config["scale_factor"]
+        lim = self.config["use_limit_precision"]
         for v in vertices:
             float_values += " {} {} {}".format(
-                v.vertex.x * scale_factor, v.vertex.y * scale_factor, v.vertex.z * scale_factor)
+                round(v.vertex.x * sf, lim),
+                round(v.vertex.y * sf, lim),
+                round(v.vertex.z * sf, lim))
         self.writel(
             S_GEOM, 4, "<float_array id=\"{}-positions-array\" "
             "count=\"{}\">{}</float_array>".format(
@@ -794,7 +799,9 @@ class DaeExporter:
         float_values = ""
         for v in vertices:
             float_values += " {} {} {}".format(
-                v.normal.x, v.normal.y, v.normal.z)
+                round(v.normal.x, lim),
+                round(v.normal.y, lim),
+                round(v.normal.z, lim))
         self.writel(
             S_GEOM, 4, "<float_array id=\"{}-normals-array\" "
             "count=\"{}\">{}</float_array>".format(
@@ -816,7 +823,9 @@ class DaeExporter:
             float_values = ""
             for v in vertices:
                 float_values += " {} {} {}".format(
-                    v.tangent.x, v.tangent.y, v.tangent.z)
+                    round(v.tangent.x, lim),
+                    round(v.tangent.y, lim),
+                    round(v.tangent.z, lim))
             self.writel(
                 S_GEOM, 4, "<float_array id=\"{}-tangents-array\" "
                 "count=\"{}\">{}</float_array>".format(
@@ -837,7 +846,9 @@ class DaeExporter:
             float_values = ""
             for v in vertices:
                 float_values += " {} {} {}".format(
-                    v.bitangent.x, v.bitangent.y, v.bitangent.z)
+                    round(v.bitangent.x, 6),
+                    round(v.bitangent.y, 6),
+                    round(v.bitangent.z, 6))
             self.writel(
                 S_GEOM, 4, "<float_array id=\"{}-bitangents-array\" "
                 "count=\"{}\">{}</float_array>".format(
@@ -860,7 +871,9 @@ class DaeExporter:
             float_values = ""
             for v in vertices:
                 try:
-                    float_values += " {} {}".format(v.uv[uvi].x, v.uv[uvi].y)
+                    float_values += " {} {}".format(
+                        round(v.uv[uvi].x, lim),
+                        round(v.uv[uvi].y, lim))
                 except:
                     # TODO: Review, understand better the multi-uv-layer API
                     float_values += " 0 0 "
@@ -886,7 +899,9 @@ class DaeExporter:
             float_values = ""
             for v in vertices:
                 float_values += " {} {} {}".format(
-                    v.color.x, v.color.y, v.color.z)
+                    round(v.color.x, lim),
+                    round(v.color.y, lim),
+                    round(v.color.z, lim))
             self.writel(
                 S_GEOM, 4, "<float_array id=\"{}-colors-array\" "
                 "count=\"{}\">{}</float_array>".format(
@@ -993,10 +1008,11 @@ class DaeExporter:
                     skel_source))
             else:
                 self.writel(S_SKIN, 2, "<skin source=\"#{}\">".format(meshid))
-
+            
+            lim = self.config["use_limit_precision"]
             self.writel(
                 S_SKIN, 3, "<bind_shape_matrix>{}</bind_shape_matrix>".format(
-                    strmtx(node.matrix_world)))
+                    strmtx(node.matrix_world, 1, lim)))
             # Joint Names
             self.writel(S_SKIN, 3, "<source id=\"{}-joints\">".format(contid))
             name_values = ""
@@ -1020,10 +1036,10 @@ class DaeExporter:
             self.writel(S_SKIN, 3, "<source id=\"{}-bind_poses\">".format(
                 contid))
             pose_values = ""
-            scale_factor = self.config["scale_factor"]
-            util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+            sf = self.config["scale_factor"]
+            lim = self.config["use_limit_precision"]
             for v in si["bone_bind_poses"]:
-                pose_values += " {}".format(strmtx((v * scale_factor).normalized() - util_matrix))
+                pose_values += " {}".format(strmtx(v, sf, lim))
 
             self.writel(
                 S_SKIN, 4, "<float_array id=\"{}-bind_poses-array\" "
@@ -1047,7 +1063,7 @@ class DaeExporter:
             for v in vertices:
                 skin_weights_total += len(v.weights)
                 for w in v.weights:
-                    skin_weights += " {}".format(w)
+                    skin_weights += " {}".format(round(w, lim))
 
             self.writel(
                 S_SKIN, 4, "<float_array id=\"{}-skin_weights-array\" "
@@ -1234,12 +1250,12 @@ class DaeExporter:
         else:
             si["skeleton_nodes"].append(boneid)
 
-        scale_factor = self.config["scale_factor"]
-        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+        sf = self.config["scale_factor"]
+        lim = self.config["use_limit_precision"]
         if (is_ctrl_bone is False):
             self.writel(
                 S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                    strmtx((xform * scale_factor).normalized() - util_matrix)))
+                    strmtx(xform, sf, lim)))
 
         for c in bone.children:
             self.export_armature_bone(c, il, si)
@@ -1580,11 +1596,11 @@ class DaeExporter:
                 self.validate_id(node.name), node.name))
         il += 1
 
-        scale_factor = self.config["scale_factor"]
-        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+        sf = self.config["scale_factor"]
+        lim = self.config["use_limit_precision"]
         self.writel(
             S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                strmtx((node.matrix_local * scale_factor).normalized() - util_matrix)))
+                strmtx(node.matrix_local, sf, lim)))
         if (node.type == "MESH"):
             self.export_mesh_node(node, il)
         elif (node.type == "CURVE"):
@@ -1679,12 +1695,12 @@ class DaeExporter:
         source_transforms = ""
         source_interps = ""
 
-        scale_factor = self.config["scale_factor"]
-        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+        sf = self.config["scale_factor"]
+        lim = self.config["use_limit_precision"]
         for k in keys:
             source_frames += " {}".format(k[0])
             if (matrices):
-                source_transforms += " {}".format(strmtx((k[1] * scale_factor).normalized() - util_matrix))
+                source_transforms += " {}".format(strmtx(k[1], sf, lim))
             else:
                 source_transforms += " {}".format(k[1])
 
@@ -2003,7 +2019,7 @@ class DaeExporter:
         needed by the OpenMW game engine.
         """
         context = bpy.context
-        scene = context.scene    
+        scene = context.scene
         textkeys_output = open(filepath[:-3] + "txt", "w")
         
         if not scene.timeline_markers:
@@ -2018,8 +2034,9 @@ class DaeExporter:
             markers.append(m)        
         markers.sort(key=sort_by_frame)
         
+        lim = self.config["use_limit_precision"]
         for m in markers:
-            tkf = round(m.frame * 1/scene.render.fps, 6)
+            tkf = round(m.frame * 1/scene.render.fps, lim)
             textkeys_output.write(m.name + " " + str(tkf) + '\n' )        
         textkeys_output.close()  
 
