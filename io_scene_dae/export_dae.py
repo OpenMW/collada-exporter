@@ -57,9 +57,12 @@ def snap_tup(tup):
     return tup
 
 
-def strmtx(mtx, scale=1.0):    
+def strmtx(mtx, scale=1.0):
+    # When scaling the exported data, we only want to affect distances,
+    # so we only multiply location values in the transform matrix.
     mtx_util = Matrix([[0,0,0,0], [0,0,0,0],[0,0,0,0],[0,0,0,scale-1]])
     mtx = (mtx * scale).normalized() - mtx_util    
+    
     s = ""
     for x in range(4):
         for y in range(4):
