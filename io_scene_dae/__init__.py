@@ -389,6 +389,7 @@ classes = (
     DAE_PT_export_armature,
     DAE_PT_export_animation,
     DAE_PT_export_extras
+
 )
 
 def register():  
