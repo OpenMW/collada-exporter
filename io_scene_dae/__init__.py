@@ -163,20 +163,20 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         options={"HIDDEN"},
         )
         
-    scale_factor : FloatProperty(
+    scale_factor: FloatProperty(
         name="Scale",
         description="Scale all data",
         min=0.01, max=1000.0,
         default=1.0,
         )
-            
+        
     use_textkeys : BoolProperty(
         name="Export Textkeys",
         description=("Export a textkeys file based on timeline markers."
                      " Needed to define animations for OpenMW."),
         default=False,
-        )
-        
+        )    
+
     use_limit_precision : IntProperty(
         name="Data Precision",
         description=("To how many decimals are the exported values limited. \n"
@@ -347,17 +347,16 @@ class DAE_PT_export_animation(bpy.types.Panel):
         layout.use_property_decorate = False
         
         sfile = context.space_data
-        operator = sfile.active_operator   
-
-        layout.enabled = operator.use_anim
-        col = layout.column(align = True) 
+        operator = sfile.active_operator
+        
+        layout.enabled = operator.use_anim     
+        col = layout.column(align = True)
         col.prop(operator, 'use_anim_action_all')
         col.prop(operator, 'use_anim_skip_noexp')
         col.prop(operator, 'use_anim_optimize')
         col.prop(operator, 'anim_optimize_precision')
-
-
-class DAE_PT_export_extras(bpy.types.Panel):
+ 
+ class DAE_PT_export_extras(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
     bl_region_type = 'TOOL_PROPS'
     bl_label = "Extra"
@@ -381,7 +380,6 @@ class DAE_PT_export_extras(bpy.types.Panel):
           
         col = layout.column(align = True)
         col.prop(operator, 'use_limit_precision')
-
     
 classes = (
     CE_OT_export_dae,
