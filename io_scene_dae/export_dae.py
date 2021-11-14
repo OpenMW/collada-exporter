@@ -57,7 +57,12 @@ def snap_tup(tup):
     return tup
 
 
-def strmtx(mtx):
+def strmtx(mtx, scale=1.0):
+    # When scaling the exported data, we only want to affect distances,
+    # so we only multiply location values in the transform matrix.
+    mtx_util = Matrix([[0,0,0,0], [0,0,0,0],[0,0,0,0],[0,0,0,scale-1]])
+    mtx = (mtx * scale).normalized() - mtx_util    
+    
     s = ""
     for x in range(4):
         for y in range(4):
@@ -770,10 +775,10 @@ class DaeExporter:
         # Vertex Array
         self.writel(S_GEOM, 3, "<source id=\"{}-positions\">".format(meshid))
         float_values = ""
-        scale_factor = self.config["scale_factor"]
+        sf = self.config["scale_factor"]
         for v in vertices:
             float_values += " {} {} {}".format(
-                v.vertex.x * scale_factor, v.vertex.y * scale_factor, v.vertex.z * scale_factor)
+                v.vertex.x * sf, v.vertex.y * sf, v.vertex.z * sf)
         self.writel(
             S_GEOM, 4, "<float_array id=\"{}-positions-array\" "
             "count=\"{}\">{}</float_array>".format(
@@ -1020,10 +1025,9 @@ class DaeExporter:
             self.writel(S_SKIN, 3, "<source id=\"{}-bind_poses\">".format(
                 contid))
             pose_values = ""
-            scale_factor = self.config["scale_factor"]
-            util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+            sf = self.config["scale_factor"]
             for v in si["bone_bind_poses"]:
-                pose_values += " {}".format(strmtx((v * scale_factor).normalized() - util_matrix))
+                pose_values += " {}".format(strmtx(v, sf))
 
             self.writel(
                 S_SKIN, 4, "<float_array id=\"{}-bind_poses-array\" "
@@ -1234,12 +1238,11 @@ class DaeExporter:
         else:
             si["skeleton_nodes"].append(boneid)
 
-        scale_factor = self.config["scale_factor"]
-        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+        sf = self.config["scale_factor"]
         if (is_ctrl_bone is False):
             self.writel(
                 S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                    strmtx((xform * scale_factor).normalized() - util_matrix)))
+                    strmtx(xform, sf)))
 
         for c in bone.children:
             self.export_armature_bone(c, il, si)
@@ -1580,11 +1583,10 @@ class DaeExporter:
                 self.validate_id(node.name), node.name))
         il += 1
 
-        scale_factor = self.config["scale_factor"]
-        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+        sf = self.config["scale_factor"]
         self.writel(
             S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
-                strmtx((node.matrix_local * scale_factor).normalized() - util_matrix)))
+                strmtx(node.matrix_local, sf)))
         if (node.type == "MESH"):
             self.export_mesh_node(node, il)
         elif (node.type == "CURVE"):
@@ -1679,12 +1681,11 @@ class DaeExporter:
         source_transforms = ""
         source_interps = ""
 
-        scale_factor = self.config["scale_factor"]
-        util_matrix = Matrix([[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,scale_factor-1]])
+        sf = self.config["scale_factor"]
         for k in keys:
             source_frames += " {}".format(k[0])
             if (matrices):
-                source_transforms += " {}".format(strmtx((k[1] * scale_factor).normalized() - util_matrix))
+                source_transforms += " {}".format(strmtx(k[1], sf))
             else:
                 source_transforms += " {}".format(k[1])
 
@@ -2003,7 +2004,7 @@ class DaeExporter:
         needed by the OpenMW game engine.
         """
         context = bpy.context
-        scene = context.scene    
+        scene = context.scene
         textkeys_output = open(filepath[:-3] + "txt", "w")
         
         if not scene.timeline_markers:
