@@ -356,7 +356,7 @@ class DAE_PT_export_animation(bpy.types.Panel):
         col.prop(operator, 'use_anim_optimize')
         col.prop(operator, 'anim_optimize_precision')
  
- class DAE_PT_export_extras(bpy.types.Panel):
+class DAE_PT_export_extras(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
     bl_region_type = 'TOOL_PROPS'
     bl_label = "Extra"
