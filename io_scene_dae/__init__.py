@@ -16,7 +16,7 @@
 # ##### END GPL LICENSE BLOCK #####
 
 import bpy
-from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty, IntProperty
 
 from bpy_extras.io_utils import ExportHelper
 bl_info = {
@@ -176,6 +176,14 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
                      " Needed to define animations for OpenMW."),
         default=False,
         )    
+
+    use_limit_precision : IntProperty(
+        name="Data Precision",
+        description=("To how many decimals are the exported values limited. \n"
+                     "The lower the number, the smaller the exported file"),
+        min=4, max=16,
+        default=6,
+        )
 
     @property
     def check_extension(self):
@@ -347,7 +355,31 @@ class DAE_PT_export_animation(bpy.types.Panel):
         col.prop(operator, 'use_anim_skip_noexp')
         col.prop(operator, 'use_anim_optimize')
         col.prop(operator, 'anim_optimize_precision')
+ 
+class DAE_PT_export_extras(bpy.types.Panel):
+    bl_space_type = 'FILE_BROWSER'
+    bl_region_type = 'TOOL_PROPS'
+    bl_label = "Extra"
+    bl_parent_id = "FILE_PT_operator"
+    bl_options = {'DEFAULT_CLOSED'}
     
+    @classmethod
+    def poll(cls, context):
+        sfile = context.space_data
+        operator = sfile.active_operator
+            
+        return operator.bl_idname == "EXPORT_SCENE_OT_dae"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        
+        sfile = context.space_data
+        operator = sfile.active_operator
+          
+        col = layout.column(align = True)
+        col.prop(operator, 'use_limit_precision')
     
 classes = (
     CE_OT_export_dae,
@@ -355,7 +387,9 @@ classes = (
     DAE_PT_export_transform,
     DAE_PT_export_geometry,
     DAE_PT_export_armature,
-    DAE_PT_export_animation
+    DAE_PT_export_animation,
+    DAE_PT_export_extras
+
 )
 
 def register():  
