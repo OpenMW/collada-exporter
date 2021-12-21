@@ -20,17 +20,16 @@ from bpy.props import StringProperty, BoolProperty, FloatProperty, EnumProperty,
 
 from bpy_extras.io_utils import ExportHelper
 bl_info = {
-    "name": "Better Collada Exporter",
-    "author": "Juan Linietsky, artell",
+    "name": "OpenMW Collada Exporter",
+    "author": "OpenMW community, Godot Engine team",
     "version": (1, 10, 11),
-    "blender": (2, 80, 0),
+    "blender": (2, 83, 0),
     "api": 38691,
     "location": "File > Import-Export",
-    "description": ("Export DAE Scenes. This plugin actually works better! "
-                    "Otherwise contact the Godot Engine community."),
+    "description": ("Export models in Collada format to OpenMW "),
     "warning": "",
-    "wiki_url": ("https://godotengine.org"),
-    "tracker_url": "https://github.com/godotengine/collada-exporter",
+    "wiki_url": ("https://openmw.org"),
+    "tracker_url": "https://github.com/openmw/collada-exporter",
     "support": "OFFICIAL",
     "category": "Import-Export"}
 
