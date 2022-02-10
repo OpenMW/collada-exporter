@@ -1225,7 +1225,7 @@ class DaeExporter:
             si["bone_count"] += 1
             bonesid = "{}-{}".format(si["id"], boneidx)
             if (bone.name in self.used_bones):
-                if (self.config["use_anim_action_all"]):
+                if (self.config["anim_source"] == "ACTIONS"):
                     self.operator.report(
                         {"WARNING"}, "Bone name \"{}\" used in more than one "
                         "skeleton. Actions might export wrong.".format(
@@ -1934,7 +1934,10 @@ class DaeExporter:
 
         self.writel(S_ANIM, 0, "<library_animations>")
 
-        if (self.config["use_anim_action_all"] and len(self.skeletons)):
+        # ================================= #
+        # Export animation based on actions #
+        # ================================= #
+        if (self.config["anim_source"] == "ACTIONS" and len(self.skeletons)):
 
             cached_actions = {}
 
@@ -2007,6 +2010,65 @@ class DaeExporter:
                     for j, bone in enumerate(s.pose.bones):
                         bone.matrix_basis = tmp_mat[i][1][j]
 
+        # ==================================== #       
+        # Export animation based on NLA strips #
+        # ==================================== #
+        elif self.config["anim_source"] == "NLA_STRIPS":            
+            # Only write un-muted NLA strips of the first valid armature object.
+            skeleton = None
+            valid_nla_strips = []
+
+            for ob in bpy.data.objects:
+                if skeleton != None:
+                    break
+                if ob not in self.valid_nodes:
+                    continue
+                if ob.type != "ARMATURE":
+                    continue
+                if not ob.animation_data:
+                    continue
+                if not ob.animation_data.nla_tracks:
+                    continue
+                skeleton = ob
+                for nla_track in ob.animation_data.nla_tracks:
+                    if nla_track.mute:
+                        continue
+                    for strip in nla_track.strips:
+                        if strip.mute:
+                            continue
+                        valid_nla_strips.append(strip)                        
+
+            self.writel(S_ANIM_CLIPS, 0, "<library_animation_clips>")
+
+            # Sort NLA strips by name as if we are exporting actions,
+            # otherwise animations don't get correct animation_clips
+            for strip in sorted(valid_nla_strips, key=lambda x: x.name):
+                strip.mute = False                
+                tcn = self.export_animation(int(strip.frame_start), int(
+                    strip.frame_end), [skeleton])
+                framelen = (1.0 / self.scene.render.fps)
+                start = strip.frame_start * framelen
+                end = strip.frame_end * framelen
+                self.writel(
+                    S_ANIM_CLIPS, 1, "<animation_clip id=\"{}\" "
+                    "start=\"{}\" end=\"{}\">".format(strip.name, start, end))
+                for z in tcn:
+                    self.writel(S_ANIM_CLIPS, 2,
+                                "<instance_animation url=\"#{}\"/>".format(z))
+                self.writel(S_ANIM_CLIPS, 1, "</animation_clip>")
+                if (len(tcn) == 0):
+                    self.operator.report(
+                        {"WARNING"}, "NLA strip \"{}\" contains no valid"
+                        "tracks.".format(strip.name))
+                strip.mute = True                
+            self.writel(S_ANIM_CLIPS, 0, "</library_animation_clips>")
+
+            for strip in valid_nla_strips:
+                strip.mute = False
+
+        # ================================================== #      
+        # Export animation based on the whole scene timeline #
+        # ================================================== #
         else:
             self.export_animation(self.scene.frame_start, self.scene.frame_end)
 
