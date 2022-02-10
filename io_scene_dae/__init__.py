@@ -108,10 +108,9 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         default=True,
         )
         
-    use_exclude_ctrl_bones : BoolProperty(
-        name="Exclude Control Bones",
-        description=("Exclude skeleton bones with names beginning with 'ctrl' "
-                     "or bones which are not marked as Deform bones."),
+    use_armature_deform_only : BoolProperty(
+        name="Only Deform Bones",
+        description=("Only export bones which are enabled to deform geometry"),
         default=True,
         )
         
@@ -318,7 +317,7 @@ class DAE_PT_export_armature(bpy.types.Panel):
         operator = sfile.active_operator
         
         col = layout.column(align = True)
-        col.prop(operator, 'use_exclude_ctrl_bones')
+        col.prop(operator, 'use_armature_deform_only')
         
 class DAE_PT_export_animation(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'

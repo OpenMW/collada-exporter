@@ -1209,15 +1209,15 @@ class DaeExporter:
                     self.alphatestingdata_done = True
 
     def export_armature_bone(self, bone, il, si):
-        is_ctrl_bone = (
-            self.config["use_exclude_ctrl_bones"] and
-            (bone.name.startswith("ctrl") or bone.use_deform == False))
-        if (bone.parent is None and is_ctrl_bone is True):
+        is_not_deform_bone = (
+            self.config["use_armature_deform_only"] and
+            bone.use_deform == False)
+        if (bone.parent is None and is_not_deform_bone is True):
             self.operator.report(
                 {"WARNING"}, "Root bone cannot be a control bone:"+bone.name)
-            is_ctrl_bone = False
+            is_not_deform_bone = False
 
-        if (is_ctrl_bone is False):
+        if (is_not_deform_bone is False):
             boneid = self.new_id("bone")
             bonenamehacked = bone.name.replace(" ", "_").lower()
             boneid = bonenamehacked
@@ -1240,11 +1240,11 @@ class DaeExporter:
                 S_NODES, il, "<node id=\"{}\" sid=\"{}\" name=\"{}\" "
                 "type=\"JOINT\">".format(boneid, bonesid, bone.name))
 
-        if (is_ctrl_bone is False):
+        if (is_not_deform_bone is False):
             il += 1
 
         xform = bone.matrix_local
-        if (is_ctrl_bone is False):
+        if (is_not_deform_bone is False):
             si["bone_bind_poses"].append(
                     (si["armature_xform"] @ xform).inverted_safe())
 
@@ -1255,7 +1255,7 @@ class DaeExporter:
 
         sf = self.config["scale_factor"]
         lim = self.config["use_limit_precision"]
-        if (is_ctrl_bone is False):
+        if (is_not_deform_bone is False):
             self.writel(
                 S_NODES, il, "<matrix sid=\"transform\">{}</matrix>".format(
                     strmtx(xform, sf, lim)))
@@ -1263,7 +1263,7 @@ class DaeExporter:
         for c in bone.children:
             self.export_armature_bone(c, il, si)
 
-        if (is_ctrl_bone is False):
+        if (is_not_deform_bone is False):
             il -= 1
             self.writel(S_NODES, il, "</node>")
 
@@ -1872,10 +1872,9 @@ class DaeExporter:
                 if (node.type == "ARMATURE"):
                     # All bones exported for now
                     for bone in node.data.bones:
-                        if((bone.name.startswith("ctrl") or
-                            bone.use_deform == False) and
-                                self.config["use_exclude_ctrl_bones"]):
-                            continue
+                        if((bone.use_deform == False) and
+                            self.config["use_armature_deform_only"]):
+                                continue
 
                         bone_name = self.skeleton_info[node]["bone_ids"][bone]
 
@@ -1887,11 +1886,9 @@ class DaeExporter:
 
                         mtx = posebone.matrix.copy()
                         if (bone.parent):
-                            if (self.config["use_exclude_ctrl_bones"]):
+                            if (self.config["use_armature_deform_only"]):
                                 current_parent_posebone = bone.parent
-                                while ((current_parent_posebone.name
-                                        .startswith("ctrl") or
-                                        current_parent_posebone.use_deform
+                                while ((current_parent_posebone.use_deform
                                         == False) and
                                         current_parent_posebone.parent):
                                     current_parent_posebone = (
