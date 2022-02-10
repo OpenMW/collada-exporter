@@ -124,7 +124,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         name="All Actions",
         description=("Export all actions for the first armature found "
                      "in separate DAE files"),
-        default=True,
+        default=False,
         )
         
     use_anim_skip_noexp : BoolProperty(
@@ -173,7 +173,22 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         description=("Export a textkeys file based on timeline markers."
                      " Needed to define animations for OpenMW."),
         default=False,
-        )    
+        )
+        
+    anim_source : EnumProperty(
+        name="Animation Source",
+        items=(("SCENE", "Timeline",
+                "Export global scene animation as a single animation clip"),
+               ("ACTIONS", "Actions",
+               "Export each action as its own animation clip"),
+               ("NLA_STRIPS", "NLA Strips",
+               "Export each un-muted NLA strip as its own animation clip"),
+               ),
+        description=(
+            'Animation data used to create animation clips\n'
+            'in the exported COLLADA file'),
+        default="SCENE",
+        )
 
     use_limit_precision : IntProperty(
         name="Data Precision",
@@ -206,7 +221,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         pass
 
 def menu_func(self, context):
-    self.layout.operator(CE_OT_export_dae.bl_idname, text="Better Collada (.dae)")
+    self.layout.operator(CE_OT_export_dae.bl_idname, text="OpenMW Collada (.dae)")
 
 class DAE_PT_export_include(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
@@ -345,15 +360,17 @@ class DAE_PT_export_animation(bpy.types.Panel):
         layout.use_property_decorate = False
         
         sfile = context.space_data
-        operator = sfile.active_operator
-        
-        layout.enabled = operator.use_anim     
+        operator = sfile.active_operator        
+
+        layout.enabled = operator.use_anim
+        layout.prop(operator, 'anim_source', text="Source")
         col = layout.column(align = True)
-        col.prop(operator, 'use_anim_action_all')
-        col.prop(operator, 'use_anim_skip_noexp')
+        if operator.anim_source == "ACTIONS":
+            col.prop(operator, 'use_anim_skip_noexp')
         col.prop(operator, 'use_anim_optimize')
         col.prop(operator, 'anim_optimize_precision')
- 
+
+
 class DAE_PT_export_extras(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
     bl_region_type = 'TOOL_PROPS'
