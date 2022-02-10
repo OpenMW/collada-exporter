@@ -23,7 +23,7 @@ bl_info = {
     "name": "OpenMW Collada Exporter",
     "author": "OpenMW community, Godot Engine team",
     "version": (1, 10, 11),
-    "blender": (2, 93, 0),
+    "blender": (2, 83, 0),
     "api": 38691,
     "location": "File > Import-Export",
     "description": ("Export models in Collada format to OpenMW "),
