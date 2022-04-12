@@ -231,7 +231,6 @@ class DaeExporter:
     # EXPORT MATERIAL ----------------------------------------------------------
     # --------------------------------------------------------------------------
     def export_material(self, material, double_sided_hint=True):
-        print(".                                    .")
         material_id = self.material_cache.get(material)
         if material_id:
             return material_id
@@ -242,17 +241,17 @@ class DaeExporter:
         self.writel(S_FX, 2, "<profile_COMMON>")
 
         # Get Main Node --------------------------------------------------------
-        # "Specular BSDF" node is Blender's most direct equivalent of the legacy
-        # specular shading system that COLLADA uses.
-        shader_node = None
+        # "Specular BSDF" shader node is Blender's most direct equivalent of the
+        # legacy specular shading system that COLLADA uses.
+        shader = None
         if not material.node_tree.nodes:
             pass
         else:
             for node in material.node_tree.nodes:    
                 if node.type == "EEVEE_SPECULAR":
-                    shader_node = node
+                    shader = node
                     break
-
+        
         # Get Image texture nodes ----------------------------------------------
         sampler_table = {}
         diffuse_tex = None
@@ -265,16 +264,16 @@ class DaeExporter:
                 continue
             if not node.outputs[0].links:
                 continue
-            if node.outputs[0].links[0].to_socket == shader_node.inputs[0]:
+            if node.outputs[0].links[0].to_socket == shader.inputs[0]:
                 diffuse_tex = node
                 continue
-            if node.outputs[0].links[0].to_socket == shader_node.inputs[1]:
+            if node.outputs[0].links[0].to_socket == shader.inputs[1]:
                 specular_tex = node
                 continue
-            if node.outputs[0].links[0].to_socket == shader_node.inputs[3]:
+            if node.outputs[0].links[0].to_socket == shader.inputs[3]:
                 emission_tex = node
                 continue
-            if node.outputs[0].links[0].to_socket == shader_node.inputs[5]:
+            if node.outputs[0].links[0].to_socket == shader.inputs[5]:
                 normal_tex = node
 
         # Image, Surface, Sampler ----------------------------------------------
@@ -328,7 +327,7 @@ class DaeExporter:
                 .format(emission_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(
-                numarr_alpha(shader_node.inputs[3].default_value, 1.0)))
+                numarr_alpha(shader.inputs[3].default_value, 1.0)))
         self.writel(S_FX, 5, "</emission>")
 
 
@@ -349,7 +348,7 @@ class DaeExporter:
                 .format(diffuse_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
-                material.diffuse_color, 1.0)))
+                shader.inputs[0].default_value, 1.0)))
         self.writel(S_FX, 5, "</diffuse>")
 
 
@@ -363,7 +362,7 @@ class DaeExporter:
                     specular_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
-                material.specular_color, material.specular_intensity)))
+                shader.inputs[1].default_value, material.specular_intensity)))
         self.writel(S_FX, 5, "</specular>")
 
         
@@ -371,7 +370,7 @@ class DaeExporter:
         # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<shininess>")
         self.writel(S_FX, 6, "<float>{}</float>".format(
-            int(100 - shader_node.inputs[2].default_value * 100)))
+            int(100 - shader.inputs[2].default_value * 100)))
         self.writel(S_FX, 5, "</shininess>")
 
         self.writel(S_FX, 5, "<reflective>")
