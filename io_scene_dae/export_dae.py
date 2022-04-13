@@ -168,53 +168,63 @@ class DaeExporter:
                 sections[k] = v
         self.sections = sections
 
+    # IMAGE EXPORT -------------------------------------------------------------
+    # --------------------------------------------------------------------------
     def export_image(self, image):
         img_id = self.image_cache.get(image)
         if img_id:
             return img_id
 
-        imgpath = image.filepath
-        if imgpath.startswith("//"):
-            imgpath = bpy.path.abspath(imgpath)
-            print("exporting image path", imgpath)
-        if (self.config["use_copy_images"]):
-            basedir = os.path.join(os.path.dirname(self.path), "images")
-            if (not os.path.isdir(basedir)):
-                os.makedirs(basedir)
-
-            if os.path.isfile(imgpath):
-                dstfile = os.path.join(basedir, os.path.basename(imgpath))
-
-                if not os.path.isfile(dstfile):
-                    shutil.copy(imgpath, dstfile)
-                imgpath = os.path.join("images", os.path.basename(imgpath))
-            else:
-                img_tmp_path = image.filepath
-                if img_tmp_path.lower().endswith(
-                    tuple(bpy.path.extensions_image)):
-                    image.filepath = os.path.join(
-                        basedir, os.path.basename(img_tmp_path))
-                else:
-                    image.filepath = os.path.join(
-                        basedir, "{}.png".format(image.name))
-
-                dstfile = os.path.join(
-                    basedir, os.path.basename(image.filepath))
-
-                if not os.path.isfile(dstfile):
-                    image.save()
-                imgpath = os.path.join(
-                    "images", os.path.basename(image.filepath))
-                image.filepath = img_tmp_path
-
-
+        imgpath = image.filepath       
+        """
+        OpenMW expects the image path in the exported COLLADA file to begin
+        with "textures/.." and the image file itself then needs to be in
+        any of the "data/textures/.." folders that are defined in OpenMW's
+        data paths.
+        
+        """
+        if imgpath.find("data/textures") != -1:
+            imgpath = imgpath[imgpath.find("data/textures") + len("data/"):]
         else:
-            try:
-                imgpath = os.path.relpath(
-                    imgpath, os.path.dirname(self.path)).replace("\\", "/")
-            except:
-                # TODO: Review, not sure why it fails
-                pass
+            if imgpath.startswith("//"):
+                imgpath = bpy.path.abspath(imgpath)
+                print("exporting image path", imgpath)
+            if (self.config["use_copy_images"]):
+                basedir = os.path.join(os.path.dirname(self.path), "images")
+                if (not os.path.isdir(basedir)):
+                    os.makedirs(basedir)
+
+                if os.path.isfile(imgpath):
+                    dstfile = os.path.join(basedir, os.path.basename(imgpath))
+
+                    if not os.path.isfile(dstfile):
+                        shutil.copy(imgpath, dstfile)
+                    imgpath = os.path.join("images", os.path.basename(imgpath))
+                else:
+                    img_tmp_path = image.filepath
+                    if img_tmp_path.lower().endswith(
+                        tuple(bpy.path.extensions_image)):
+                        image.filepath = os.path.join(
+                            basedir, os.path.basename(img_tmp_path))
+                    else:
+                        image.filepath = os.path.join(
+                            basedir, "{}.png".format(image.name))
+
+                    dstfile = os.path.join(
+                        basedir, os.path.basename(image.filepath))
+
+                    if not os.path.isfile(dstfile):
+                        image.save()
+                    imgpath = os.path.join(
+                        "images", os.path.basename(image.filepath))
+                    image.filepath = img_tmp_path
+            else:
+                try:
+                    imgpath = os.path.relpath(
+                        imgpath, os.path.dirname(self.path)).replace("\\", "/")
+                except:
+                    # TODO: Review, not sure why it fails
+                    pass
 
         imgid = self.new_id("image")
 
