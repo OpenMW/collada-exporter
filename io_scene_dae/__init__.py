@@ -114,6 +114,14 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         default=True,
         )
         
+    use_bodypart_description : BoolProperty(
+        name="Skinned Body Part",
+        description=("Required by OpenMW to know this is an armature of a "
+                    "skinned body part. Rigid body parts without armature "
+                    "deformations should leave it disabled"),
+        default=False,
+        )
+        
     use_anim : BoolProperty(
         name="Export Animation",
         description="Export keyframe animation",
@@ -333,6 +341,7 @@ class DAE_PT_export_armature(bpy.types.Panel):
         
         col = layout.column(align = True)
         col.prop(operator, 'use_armature_deform_only')
+        col.prop(operator, 'use_bodypart_description')
         
 class DAE_PT_export_animation(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
