@@ -230,7 +230,7 @@ class DaeExporter:
 
     # EXPORT MATERIAL ----------------------------------------------------------
     # --------------------------------------------------------------------------
-    def export_material(self, material, double_sided_hint=True):
+    def export_material(self, material):
         material_id = self.material_cache.get(material)
         if material_id:
             return material_id
@@ -409,10 +409,13 @@ class DaeExporter:
                     normal_tex))
             self.writel(S_FX, 5, "</bump>")
 
+        
+        # DOUBLE-SIDED ---------------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 4, "</technique>")
         self.writel(S_FX, 4, "<technique profile=\"GOOGLEEARTH\">")
         self.writel(S_FX, 5, "<double_sided>{}</double_sided>".format(
-            int(double_sided_hint)))
+            1 - int(material.use_backface_culling)))
         self.writel(S_FX, 4, "</technique>")
 
 
@@ -692,8 +695,7 @@ class DaeExporter:
                     mat = None
 
                 if (mat is not None):
-                    materials[f.material_index] = self.export_material(
-                        mat, True)#True = deprecated mesh.show_double_sided value, which is removed from Blender 2.8
+                    materials[f.material_index] = self.export_material(mat)
                 else:
                     materials[f.material_index] = None
 
