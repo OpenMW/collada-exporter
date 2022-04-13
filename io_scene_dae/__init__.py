@@ -117,8 +117,9 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     use_bodypart_description : BoolProperty(
         name="Skinned Body Part",
         description=("Required by OpenMW to know this is an armature of a "
-                    "skinned body part. Rigid body parts without armature "
-                    "deformations should leave it disabled"),
+                    "skinned body part. Leave disabled for:\n"
+                    "- Rigid body parts without armature deformations\n"
+                    "- Animated meshes not used as body parts in OpenMW"),
         default=False,
         )
         
