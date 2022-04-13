@@ -258,60 +258,61 @@ class DaeExporter:
         specular_tex = None
         emission_tex = None
         normal_tex = None
+        
+        if shader is not None:
+            for node in material.node_tree.nodes:
+                if node.type != "TEX_IMAGE":
+                    continue
+                if not node.outputs[0].links:
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[0]:
+                    diffuse_tex = node
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[1]:
+                    specular_tex = node
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[3]:
+                    emission_tex = node
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[5]:
+                    normal_tex = node
 
-        for node in material.node_tree.nodes:
-            if node.type != "TEX_IMAGE":
-                continue
-            if not node.outputs[0].links:
-                continue
-            if node.outputs[0].links[0].to_socket == shader.inputs[0]:
-                diffuse_tex = node
-                continue
-            if node.outputs[0].links[0].to_socket == shader.inputs[1]:
-                specular_tex = node
-                continue
-            if node.outputs[0].links[0].to_socket == shader.inputs[3]:
-                emission_tex = node
-                continue
-            if node.outputs[0].links[0].to_socket == shader.inputs[5]:
-                normal_tex = node
+            # Image, Surface, Sampler ----------------------------------------------
+            for i, tex in enumerate([diffuse_tex, specular_tex, emission_tex, normal_tex]):
+                if tex == None:
+                    continue
+                if tex.image == None:
+                    continue
 
-        # Image, Surface, Sampler ----------------------------------------------
-        for i, tex in enumerate([diffuse_tex, specular_tex, emission_tex, normal_tex]):
-            if tex == None:
-                continue
-            if tex.image == None:
-                continue
+                # Image ------------------------------------------------------------
+                imgid = self.export_image(tex.image)
 
-            # Image ------------------------------------------------------------
-            imgid = self.export_image(tex.image)
+                # Surface ----------------------------------------------------------
+                surface_sid = self.new_id("fx_surf")
+                self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(surface_sid))
+                self.writel(S_FX, 4, "<surface type=\"2D\">")
+                self.writel(S_FX, 5, "<init_from>{}</init_from>".format(imgid))
+                self.writel(S_FX, 5, "<format>A8R8G8B8</format>")
+                self.writel(S_FX, 4, "</surface>")
+                self.writel(S_FX, 3, "</newparam>")
 
-            # Surface ----------------------------------------------------------
-            surface_sid = self.new_id("fx_surf")
-            self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(surface_sid))
-            self.writel(S_FX, 4, "<surface type=\"2D\">")
-            self.writel(S_FX, 5, "<init_from>{}</init_from>".format(imgid))
-            self.writel(S_FX, 5, "<format>A8R8G8B8</format>")
-            self.writel(S_FX, 4, "</surface>")
-            self.writel(S_FX, 3, "</newparam>")
+                # Sampler ----------------------------------------------------------
+                sampler_sid = self.new_id("fx_sampler")
+                self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(sampler_sid))
+                self.writel(S_FX, 4, "<sampler2D>")
+                self.writel(S_FX, 5, "<source>{}</source>".format(surface_sid))
+                self.writel(S_FX, 4, "</sampler2D>")
+                self.writel(S_FX, 3, "</newparam>")
+                sampler_table[i] = sampler_sid
 
-            # Sampler ----------------------------------------------------------
-            sampler_sid = self.new_id("fx_sampler")
-            self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(sampler_sid))
-            self.writel(S_FX, 4, "<sampler2D>")
-            self.writel(S_FX, 5, "<source>{}</source>".format(surface_sid))
-            self.writel(S_FX, 4, "</sampler2D>")
-            self.writel(S_FX, 3, "</newparam>")
-            sampler_table[i] = sampler_sid
-
-            if i == 0:
-                diffuse_tex = sampler_sid
-            if i == 1:
-                specular_tex = sampler_sid
-            if i == 2:
-                emission_tex = sampler_sid
-            if i == 3:
-                normal_tex = sampler_sid
+                if i == 0:
+                    diffuse_tex = sampler_sid
+                if i == 1:
+                    specular_tex = sampler_sid
+                if i == 2:
+                    emission_tex = sampler_sid
+                if i == 3:
+                    normal_tex = sampler_sid
 
         self.writel(S_FX, 3, "<technique sid=\"common\">")
         shtype = "blinn"
@@ -321,7 +322,9 @@ class DaeExporter:
         # EMISSION -------------------------------------------------------------
         # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<emission>")
-        if emission_tex is not None:
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 0.0 0.0 0.0 1.0 </color>")
+        elif emission_tex is not None:
             self.writel(
                 S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
                 .format(emission_tex))
@@ -334,15 +337,20 @@ class DaeExporter:
         # AMBIENT --------------------------------------------------------------
         # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<ambient>")
-        self.writel(S_FX, 6, "<color>{}</color>".format(
-            numarr_alpha(bpy.context.scene.world.color, 1.0)))
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 1.0 1.0 1.0 1.0 </color>")
+        else:
+            self.writel(S_FX, 6, "<color>{}</color>".format(
+                numarr_alpha(bpy.context.scene.world.color, 1.0)))
         self.writel(S_FX, 5, "</ambient>")
 
 
         # DIFFUSE --------------------------------------------------------------
         # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<diffuse>")
-        if diffuse_tex is not None:
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 1.0 1.0 1.0 1.0 </color>")
+        elif diffuse_tex is not None:
             self.writel(
                 S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
                 .format(diffuse_tex))
@@ -355,7 +363,9 @@ class DaeExporter:
         # SPECULAR -------------------------------------------------------------
         # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<specular>")
-        if specular_tex is not None:
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 0.5 0.5 0.5 1.5 </color>")
+        elif specular_tex is not None:
             self.writel(
                 S_FX, 6,
                 "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>".format(
@@ -369,8 +379,11 @@ class DaeExporter:
         # SHININESS ------------------------------------------------------------
         # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<shininess>")
-        self.writel(S_FX, 6, "<float>{}</float>".format(
-            int(100 - shader.inputs[2].default_value * 100)))
+        if shader is None:
+            self.writel(S_FX, 6, "<float>50</float>")
+        else:
+            self.writel(S_FX, 6, "<float>{}</float>".format(
+                int((1 - shader.inputs[2].default_value) * 100)))
         self.writel(S_FX, 5, "</shininess>")
 
         self.writel(S_FX, 5, "<reflective>")
