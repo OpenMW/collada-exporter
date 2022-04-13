@@ -1619,7 +1619,24 @@ class DaeExporter:
 
         for x in sorted(node.children, key=lambda x: x.name):
             self.export_node(x, il)
-
+        
+        if (self.config["use_bodypart_description"]
+            and node.type == "ARMATURE"
+            and not node.parent):
+            """
+            Description required by OpenMW to properly assign skinned body parts
+            from separate files to a single armature belonging to a character.
+            In this case the existing armature of the skinned body part needs
+            to be discarded.
+            """
+            self.writel(S_NODES, 3, "<extra type=\"Node\">")
+            self.writel(S_NODES, 4, "<technique profile=\"OpenSceneGraph\">")
+            self.writel(S_NODES, 5, "<Descriptions>")
+            self.writel(S_NODES, 5, "<Description>bodypart</Description>")
+            self.writel(S_NODES, 5, "</Descriptions>")
+            self.writel(S_NODES, 4, "</technique>")
+            self.writel(S_NODES, 3, "</extra>")
+        
         il -= 1
         self.writel(S_NODES, il, "</node>")
         bpy.context.view_layer.objects.active = prev_node
