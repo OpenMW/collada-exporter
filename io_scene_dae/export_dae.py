@@ -402,15 +402,17 @@ class DaeExporter:
         self.writel(S_FX, 5, "</reflective>")
 
 
-        # TRANSPARENCY STUFF ---------------------------------------------------
+        # TRANSPARENCY ---------------------------------------------------------
         # ----------------------------------------------------------------------
         if material.blend_method == "BLEND":
             self.writel(S_FX, 5, "<transparency>")
-            self.writel(S_FX, 6, "<float>{}</float>".format(material.alpha_threshold))
+            self.writel(S_FX, 6, "<float>{}</float>".format(
+                1 - shader.inputs[4].default_value))
             self.writel(S_FX, 5, "</transparency>")
 
         if material.blend_method == "CLIP":
-            self.alphatesting_materialdata = self.alphatesting_materialdata + " " + material.name + " " + str(material.alpha_threshold)
+            self.alphatesting_materialdata = (self.alphatesting_materialdata +
+                " " + material.name + " " + str(1 - shader.inputs[4].default_value))
 
 
         # INDEX OF REFRACTION --------------------------------------------------
