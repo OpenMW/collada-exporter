@@ -2083,7 +2083,6 @@ class DaeExporter:
         context = bpy.context
         scene = context.scene
         textkeys_output = open(filepath[:-3] + "txt", "w")
-        lim = self.config["use_limit_precision"]
         markers = []
         strips_cache = []
         
@@ -2104,7 +2103,7 @@ class DaeExporter:
                 frame = (m.frame * s.scale
                         - (s.scale - 1)
                         + s.frame_start - 1)
-                frame = round(frame * 1/scene.render.fps, lim)
+                frame = frame * 1/scene.render.fps
                 markers.append(("{} {}").format(str(m.name), str(frame)))
 
         for m in markers:
