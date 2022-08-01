@@ -168,53 +168,63 @@ class DaeExporter:
                 sections[k] = v
         self.sections = sections
 
+    # IMAGE EXPORT -------------------------------------------------------------
+    # --------------------------------------------------------------------------
     def export_image(self, image):
         img_id = self.image_cache.get(image)
         if img_id:
             return img_id
 
-        imgpath = image.filepath
-        if imgpath.startswith("//"):
-            imgpath = bpy.path.abspath(imgpath)
-            print("exporting image path", imgpath)
-        if (self.config["use_copy_images"]):
-            basedir = os.path.join(os.path.dirname(self.path), "images")
-            if (not os.path.isdir(basedir)):
-                os.makedirs(basedir)
-
-            if os.path.isfile(imgpath):
-                dstfile = os.path.join(basedir, os.path.basename(imgpath))
-
-                if not os.path.isfile(dstfile):
-                    shutil.copy(imgpath, dstfile)
-                imgpath = os.path.join("images", os.path.basename(imgpath))
-            else:
-                img_tmp_path = image.filepath
-                if img_tmp_path.lower().endswith(
-                    tuple(bpy.path.extensions_image)):
-                    image.filepath = os.path.join(
-                        basedir, os.path.basename(img_tmp_path))
-                else:
-                    image.filepath = os.path.join(
-                        basedir, "{}.png".format(image.name))
-
-                dstfile = os.path.join(
-                    basedir, os.path.basename(image.filepath))
-
-                if not os.path.isfile(dstfile):
-                    image.save()
-                imgpath = os.path.join(
-                    "images", os.path.basename(image.filepath))
-                image.filepath = img_tmp_path
-
-
+        imgpath = image.filepath       
+        """
+        OpenMW expects the image path in the exported COLLADA file to begin
+        with "textures/.." and the image file itself then needs to be in
+        any of the "data/textures/.." folders that are defined in OpenMW's
+        data paths.
+        
+        """
+        if imgpath.find("data/textures") != -1:
+            imgpath = imgpath[imgpath.find("data/textures") + len("data/"):]
         else:
-            try:
-                imgpath = os.path.relpath(
-                    imgpath, os.path.dirname(self.path)).replace("\\", "/")
-            except:
-                # TODO: Review, not sure why it fails
-                pass
+            if imgpath.startswith("//"):
+                imgpath = bpy.path.abspath(imgpath)
+                print("exporting image path", imgpath)
+            if (self.config["use_copy_images"]):
+                basedir = os.path.join(os.path.dirname(self.path), "images")
+                if (not os.path.isdir(basedir)):
+                    os.makedirs(basedir)
+
+                if os.path.isfile(imgpath):
+                    dstfile = os.path.join(basedir, os.path.basename(imgpath))
+
+                    if not os.path.isfile(dstfile):
+                        shutil.copy(imgpath, dstfile)
+                    imgpath = os.path.join("images", os.path.basename(imgpath))
+                else:
+                    img_tmp_path = image.filepath
+                    if img_tmp_path.lower().endswith(
+                        tuple(bpy.path.extensions_image)):
+                        image.filepath = os.path.join(
+                            basedir, os.path.basename(img_tmp_path))
+                    else:
+                        image.filepath = os.path.join(
+                            basedir, "{}.png".format(image.name))
+
+                    dstfile = os.path.join(
+                        basedir, os.path.basename(image.filepath))
+
+                    if not os.path.isfile(dstfile):
+                        image.save()
+                    imgpath = os.path.join(
+                        "images", os.path.basename(image.filepath))
+                    image.filepath = img_tmp_path
+            else:
+                try:
+                    imgpath = os.path.relpath(
+                        imgpath, os.path.dirname(self.path)).replace("\\", "/")
+                except:
+                    # TODO: Review, not sure why it fails
+                    pass
 
         imgid = self.new_id("image")
 
@@ -227,7 +237,10 @@ class DaeExporter:
         self.image_cache[image] = imgid
         return imgid
 
-    def export_material(self, material, double_sided_hint=True):
+
+    # EXPORT MATERIAL ----------------------------------------------------------
+    # --------------------------------------------------------------------------
+    def export_material(self, material):
         material_id = self.material_cache.get(material)
         if material_id:
             return material_id
@@ -237,30 +250,54 @@ class DaeExporter:
             fxid, material.name))
         self.writel(S_FX, 2, "<profile_COMMON>")
 
-        # Find and fetch the textures and create sources
+        # Get Main Node --------------------------------------------------------
+        # "Specular BSDF" shader node is Blender's most direct equivalent of the
+        # legacy specular shading system that COLLADA uses.
+        shader = None
+        if not material.node_tree.nodes:
+            pass
+        else:
+            for node in material.node_tree.nodes:    
+                if node.type == "EEVEE_SPECULAR":
+                    shader = node
+                    break
+        
+        # Get Image texture nodes ----------------------------------------------
         sampler_table = {}
         diffuse_tex = None
         specular_tex = None
         emission_tex = None
         normal_tex = None
+        
+        if shader is not None:
+            for node in material.node_tree.nodes:
+                if node.type != "TEX_IMAGE":
+                    continue
+                if not node.outputs[0].links:
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[0]:
+                    diffuse_tex = node
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[1]:
+                    specular_tex = node
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[3]:
+                    emission_tex = node
+                    continue
+                if node.outputs[0].links[0].to_socket == shader.inputs[5]:
+                    normal_tex = node
 
-        #TODO, use Blender 2.8 principled shader and connected maps
-        mat_wrap = node_shader_utils.PrincipledBSDFWrapper(material) if material else None
-
-        if mat_wrap:
-            textures_keys = ["base_color_texture", "specular_texture", "normalmap_texture"]
-
-            for i, tkey in enumerate(textures_keys):
-                tex = getattr(mat_wrap, tkey, None)
+            # Image, Surface, Sampler ----------------------------------------------
+            for i, tex in enumerate([diffuse_tex, specular_tex, emission_tex, normal_tex]):
                 if tex == None:
                     continue
                 if tex.image == None:
                     continue
 
-                # Image
+                # Image ------------------------------------------------------------
                 imgid = self.export_image(tex.image)
 
-                # Surface
+                # Surface ----------------------------------------------------------
                 surface_sid = self.new_id("fx_surf")
                 self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(surface_sid))
                 self.writel(S_FX, 4, "<surface type=\"2D\">")
@@ -269,7 +306,7 @@ class DaeExporter:
                 self.writel(S_FX, 4, "</surface>")
                 self.writel(S_FX, 3, "</newparam>")
 
-                # Sampler
+                # Sampler ----------------------------------------------------------
                 sampler_sid = self.new_id("fx_sampler")
                 self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(sampler_sid))
                 self.writel(S_FX, 4, "<sampler2D>")
@@ -278,125 +315,110 @@ class DaeExporter:
                 self.writel(S_FX, 3, "</newparam>")
                 sampler_table[i] = sampler_sid
 
-                if tkey == "base_color_texture" and diffuse_tex is None:
+                if i == 0:
                     diffuse_tex = sampler_sid
-                if tkey == "specular_texture" and specular_tex is None:
+                if i == 1:
                     specular_tex = sampler_sid
-                """
-                # TODO differently, no emission input in the principled shader
-                if ts.use_map_emit and emission_tex is None:
+                if i == 2:
                     emission_tex = sampler_sid
-                """
-                if tkey == "normalmap_texture" and normal_tex is None:
+                if i == 3:
                     normal_tex = sampler_sid
-
-        """
-        for i in range(len(material.texture_slots)):
-            ts = material.texture_slots[i]
-            if not ts:
-                continue
-            if not ts.use:
-                continue
-            if not ts.texture:
-                continue
-            if ts.texture.type != "IMAGE":
-                continue
-
-            if ts.texture.image is None:
-                continue
-
-            # Image
-            imgid = self.export_image(ts.texture.image)
-
-            # Surface
-            surface_sid = self.new_id("fx_surf")
-            self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(surface_sid))
-            self.writel(S_FX, 4, "<surface type=\"2D\">")
-            self.writel(S_FX, 5, "<init_from>{}</init_from>".format(imgid))
-            self.writel(S_FX, 5, "<format>A8R8G8B8</format>")
-            self.writel(S_FX, 4, "</surface>")
-            self.writel(S_FX, 3, "</newparam>")
-
-            # Sampler
-            sampler_sid = self.new_id("fx_sampler")
-            self.writel(S_FX, 3, "<newparam sid=\"{}\">".format(sampler_sid))
-            self.writel(S_FX, 4, "<sampler2D>")
-            self.writel(S_FX, 5, "<source>{}</source>".format(surface_sid))
-            self.writel(S_FX, 4, "</sampler2D>")
-            self.writel(S_FX, 3, "</newparam>")
-            sampler_table[i] = sampler_sid
-
-            if ts.use_map_color_diffuse and diffuse_tex is None:
-                diffuse_tex = sampler_sid
-            if ts.use_map_color_spec and specular_tex is None:
-                specular_tex = sampler_sid
-            if ts.use_map_emit and emission_tex is None:
-                emission_tex = sampler_sid
-            if ts.use_map_normal and normal_tex is None:
-                normal_tex = sampler_sid
-        """
 
         self.writel(S_FX, 3, "<technique sid=\"common\">")
         shtype = "blinn"
         self.writel(S_FX, 4, "<{}>".format(shtype))
-
+        
+        
+        # EMISSION -------------------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<emission>")
-        if emission_tex is not None:
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 0.0 0.0 0.0 1.0 </color>")
+        elif emission_tex is not None:
             self.writel(
                 S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
                 .format(emission_tex))
         else:
-            # TODO: More accurate coloring, if possible
             self.writel(S_FX, 6, "<color>{}</color>".format(
-                numarr_alpha(material.diffuse_color, 1.0)))#material.emit is removed in Blender 2.8
+                numarr_alpha(shader.inputs[3].default_value, 1.0)))
         self.writel(S_FX, 5, "</emission>")
 
+
+        # AMBIENT --------------------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<ambient>")
-        self.writel(S_FX, 6, "<color>{}</color>".format(
-            numarr_alpha((0.0,0.0,0.0), 1.0)))# self.scene.world.ambient_color and material.ambient are removed too
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 1.0 1.0 1.0 1.0 </color>")
+        else:
+            self.writel(S_FX, 6, "<color>{}</color>".format(
+                numarr_alpha(bpy.context.scene.world.color, 1.0)))
         self.writel(S_FX, 5, "</ambient>")
 
+
+        # DIFFUSE --------------------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<diffuse>")
-        if diffuse_tex is not None:
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 1.0 1.0 1.0 1.0 </color>")
+        elif diffuse_tex is not None:
             self.writel(
                 S_FX, 6, "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>"
                 .format(diffuse_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
-                material.diffuse_color, 0.8)))# material.diffuse_intensity is removed too
+                shader.inputs[0].default_value, 1.0)))
         self.writel(S_FX, 5, "</diffuse>")
 
+
+        # SPECULAR -------------------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<specular>")
-        if specular_tex is not None:
+        if shader is None:
+            self.writel(S_FX, 6, "<color> 0.5 0.5 0.5 1.5 </color>")
+        elif specular_tex is not None:
             self.writel(
                 S_FX, 6,
                 "<texture texture=\"{}\" texcoord=\"CHANNEL1\"/>".format(
                     specular_tex))
         else:
             self.writel(S_FX, 6, "<color>{}</color>".format(numarr_alpha(
-                material.specular_color, material.specular_intensity)))
+                shader.inputs[1].default_value, material.specular_intensity)))
         self.writel(S_FX, 5, "</specular>")
 
+        
+        # SHININESS ------------------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<shininess>")
-        self.writel(S_FX, 6, "<float>{}</float>".format(
-            50))# material.specular_hardness is removed too
+        if shader is None:
+            self.writel(S_FX, 6, "<float>50</float>")
+        else:
+            self.writel(S_FX, 6, "<float>{}</float>".format(
+                int((1 - shader.inputs[2].default_value) * 100)))
         self.writel(S_FX, 5, "</shininess>")
 
         self.writel(S_FX, 5, "<reflective>")
         self.writel(S_FX, 6, "<color>{}</color>".format(
-            numarr_alpha((0.5,0.5,0.5))))# material.mirror_color is removed too
+            numarr_alpha((0.5,0.5,0.5))))
         self.writel(S_FX, 5, "</reflective>")
 
+
+        # TRANSPARENCY ---------------------------------------------------------
+        # ----------------------------------------------------------------------
         if material.blend_method == "BLEND":
             self.writel(S_FX, 5, "<transparency>")
-            self.writel(S_FX, 6, "<float>{}</float>".format(material.alpha_threshold))
+            self.writel(S_FX, 6, "<float>{}</float>".format(
+                1 - shader.inputs[4].default_value))
             self.writel(S_FX, 5, "</transparency>")
 
         if material.blend_method == "CLIP":
-            self.alphatesting_materialdata = self.alphatesting_materialdata + " " + material.name + " " + str(material.alpha_threshold)
+            self.alphatesting_materialdata = (self.alphatesting_materialdata +
+                " " + material.name + " " + str(1 - shader.inputs[4].default_value))
 
+
+        # INDEX OF REFRACTION --------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 5, "<index_of_refraction>")
-        self.writel(S_FX, 6, "<float>{}</float>".format(1.2))#material.specular_ior is removed too
+        self.writel(S_FX, 6, "<float>{}</float>".format(1.2))
         self.writel(S_FX, 5, "</index_of_refraction>")
 
         self.writel(S_FX, 4, "</{}>".format(shtype))
@@ -412,12 +434,18 @@ class DaeExporter:
                     normal_tex))
             self.writel(S_FX, 5, "</bump>")
 
+        
+        # DOUBLE-SIDED ---------------------------------------------------------
+        # ----------------------------------------------------------------------
         self.writel(S_FX, 4, "</technique>")
         self.writel(S_FX, 4, "<technique profile=\"GOOGLEEARTH\">")
         self.writel(S_FX, 5, "<double_sided>{}</double_sided>".format(
-            int(double_sided_hint)))
+            1 - int(material.use_backface_culling)))
         self.writel(S_FX, 4, "</technique>")
 
+
+        # SHADELESS ------------------------------------------------------------
+        # ----------------------------------------------------------------------
         """
         if (material.use_shadeless):#material.use_shadeless is removed too
             self.writel(S_FX, 5, "<technique profile=\"GODOT\">")
@@ -692,8 +720,7 @@ class DaeExporter:
                     mat = None
 
                 if (mat is not None):
-                    materials[f.material_index] = self.export_material(
-                        mat, True)#True = deprecated mesh.show_double_sided value, which is removed from Blender 2.8
+                    materials[f.material_index] = self.export_material(mat)
                 else:
                     materials[f.material_index] = None
 
@@ -2119,7 +2146,7 @@ class DaeExporter:
         for m in markers:
             tkf = round(m.frame * 1/scene.render.fps, lim)
             textkeys_output.write(m.name + " " + str(tkf) + '\n' )        
-        textkeys_output.close()  
+        textkeys_output.close()
 
     def export(self):
         self.writel(S_GEOM, 0, "<library_geometries>")
