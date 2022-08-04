@@ -2087,13 +2087,14 @@ class DaeExporter:
         strips_cache = []
         
         # Gather all relevant strips
-        for track in bpy.data.objects['rig'].animation_data.nla_tracks:
-            if track.mute:
-                continue
-            for strip in track.strips:
-                if strip.mute:
+        for s in self.skeletons:
+            for track in s.animation_data.nla_tracks:
+                if track.mute:
                     continue
-                strips_cache.append(strip)
+                for strip in track.strips:
+                    if strip.mute:
+                        continue
+                    strips_cache.append(strip)
         
         # Gather all relevant markers
         for s in sorted(strips_cache, key=lambda x: x.frame_start):        
