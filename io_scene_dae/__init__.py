@@ -66,13 +66,13 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     use_export_selected : BoolProperty(
         name="Selected Objects",
         description="Export only selected objects (and visible in active "
-                    "layers if that applies).",
+                    "layers if that applies)",
         default=False,
         )
         
     use_mesh_modifiers : BoolProperty(
         name="Apply Modifiers",
-        description="Apply modifiers to mesh objects (on a copy!).",
+        description="Apply modifiers to mesh objects (on a copy!)",
         default=True,
         )
         
@@ -86,13 +86,13 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     use_tangent_arrays : BoolProperty(
         name="Tangent Arrays",
         description="Export Tangent and Binormal arrays "
-                    "(for normalmapping).",
+                    "(for normalmapping)",
         default=False,
         )
         
     use_triangles : BoolProperty(
         name="Triangulate",
-        description="Export Triangles instead of Polygons.",
+        description="Export Triangles instead of Polygons",
         default=True,
         )
         
@@ -104,7 +104,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         
     use_active_layers : BoolProperty(
         name="Active Layers",
-        description="Export only objects on the active layers.",
+        description="Export only objects on the active layers",
         default=True,
         )
         
@@ -139,7 +139,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
     use_anim_skip_noexp : BoolProperty(
         name="Skip (-noexp) Actions",
         description="Skip exporting of actions whose name end in (-noexp)."
-                    " Useful to skip control animations.",
+                    " Useful to skip control animations",
         default=True,
         )
         
@@ -151,7 +151,7 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         
     use_shape_key_export : BoolProperty(
         name="Shape Keys",
-        description="Export shape keys for selected objects.",
+        description="Export shape keys for selected objects",
         default=False,
         )
         
@@ -179,11 +179,11 @@ class CE_OT_export_dae(bpy.types.Operator, ExportHelper):
         
     use_textkeys : BoolProperty(
         name="Export Textkeys",
-        description=("Export a textkeys file based on timeline markers."
-                     " Needed to define animations for OpenMW."),
+        description=("Export a textkeys file based on pose markers in each exported action."
+                     " Needed to define animations for OpenMW"),
         default=False,
         )
-        
+       
     anim_source : EnumProperty(
         name="Animation Source",
         items=(("SCENE", "Timeline",
@@ -261,7 +261,7 @@ class DAE_PT_export_include(bpy.types.Panel):
         
         col = layout.column(heading = "Extras", align = True)
         col.prop(operator, 'use_copy_images')
-        col.prop(operator, 'use_textkeys')        
+        col.prop(operator, 'use_textkeys')
 
 class DAE_PT_export_transform(bpy.types.Panel):
     bl_space_type = 'FILE_BROWSER'
@@ -414,7 +414,6 @@ classes = (
     DAE_PT_export_armature,
     DAE_PT_export_animation,
     DAE_PT_export_extras
-
 )
 
 def register():  

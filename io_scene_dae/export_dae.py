@@ -2129,23 +2129,33 @@ class DaeExporter:
         context = bpy.context
         scene = context.scene
         textkeys_output = open(filepath[:-3] + "txt", "w")
-        
-        if not scene.timeline_markers:
-            textkeys_output.write("No timeline markers, needed to create textkeys, found in .blend file!")        
-            textkeys_output.close()  
-        
-        def sort_by_frame(item):
-            return item.frame    
-        
         markers = []
-        for m in scene.timeline_markers:
-            markers.append(m)        
-        markers.sort(key=sort_by_frame)
+        strips_cache = []
         
-        lim = self.config["use_limit_precision"]
+        # Gather all relevant strips
+        for s in self.skeletons:
+            for track in s.animation_data.nla_tracks:
+                if track.mute:
+                    continue
+                for strip in track.strips:
+                    if strip.mute:
+                        continue
+                    strips_cache.append(strip)
+        
+        # Gather all relevant markers
+        for s in sorted(strips_cache, key=lambda x: x.frame_start):        
+            for m in sorted(s.action.pose_markers, key=lambda x: x.frame):
+                # Frame offset based on the parent strip scale and
+                # position in the NLA editor.
+                frame = (m.frame * s.scale
+                        - (s.scale - 1)
+                        + s.frame_start - 1)
+                frame = frame * 1/scene.render.fps
+                # Textkeys don't work if they are not lower case.
+                markers.append(("{} {}").format(str(m.name), str(frame)).lower())
+
         for m in markers:
-            tkf = round(m.frame * 1/scene.render.fps, lim)
-            textkeys_output.write(m.name + " " + str(tkf) + '\n' )        
+            textkeys_output.write(m + '\n')
         textkeys_output.close()
 
     def export(self):
